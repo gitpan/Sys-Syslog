@@ -1,0 +1,8 @@
+Revision history for Sys-Syslog
+
+0.09    2005.12.06
+        [CODE] Now setlogsock() really croak(), as documented.
+        [DIST] CPANized from blead@26281.
+        [DIST] Bumped version to 0.09
+        [TESTS] Rewrote and ported t/syslog.t to Test::More
+

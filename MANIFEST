@@ -1,0 +1,14 @@
+Changes
+const-c.inc
+const-xs.inc
+Makefile.PL
+MANIFEST
+README
+Syslog.pm
+Syslog.xs
+fallback/const-c.inc
+fallback/const-xs.inc
+t/00-load.t
+t/pod.t
+t/syslog.t
+META.yml                                 Module meta-data (added by MakeMaker)
