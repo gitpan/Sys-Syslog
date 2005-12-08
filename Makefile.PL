@@ -1,5 +1,6 @@
 use ExtUtils::MakeMaker;
 eval 'use ExtUtils::MakeMaker::Coverage';
+require 5.006;
 
 WriteMakefile(
     NAME            => 'Sys::Syslog',
@@ -10,6 +11,7 @@ WriteMakefile(
     XSPROTOARG      => '-noprototypes',
     PREREQ_PM       => {
         'Test::More' => 0,
+        'XSLoader' => 0,
     },
     dist            => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean           => { FILES => 'Sys-Syslog-*' }, 
@@ -32,18 +34,24 @@ if (-S "/dev/log" && -w "/dev/log") {
 }
 
 if(eval {require ExtUtils::Constant; 1}) {
-    ExtUtils::Constant::WriteConstants(
-        NAME => 'Sys::Syslog',
-        NAMES => [qw(LOG_ALERT LOG_AUTH LOG_AUTHPRIV LOG_CONS LOG_CRIT LOG_CRON
+    my @names = (qw( LOG_ALERT LOG_AUTH LOG_AUTHPRIV LOG_CONS LOG_CRIT LOG_CRON
                      LOG_DAEMON LOG_DEBUG LOG_EMERG LOG_ERR LOG_FACMASK LOG_FTP
                      LOG_INFO LOG_KERN LOG_LFMT LOG_LOCAL0 LOG_LOCAL1 LOG_LOCAL2
                      LOG_LOCAL3 LOG_LOCAL4 LOG_LOCAL5 LOG_LOCAL6 LOG_LOCAL7 LOG_LPR
                      LOG_MAIL LOG_NDELAY LOG_NEWS LOG_NFACILITIES LOG_NOTICE
                      LOG_NOWAIT LOG_ODELAY LOG_PERROR LOG_PID LOG_PRIMASK LOG_SYSLOG
                      LOG_USER LOG_UUCP LOG_WARNING),
-                   { name => "_PATH_LOG", type => "PV", default => [ "PV", qq("$_PATH_LOG") ] },
-                 ],
+           { name => "_PATH_LOG", type => "PV", default => [ "PV", qq("$_PATH_LOG") ] },
     );
+
+    ExtUtils::Constant::WriteConstants(
+        NAME => 'Sys::Syslog',
+        NAMES => \@names,
+    );
+
+    open(MACROS, '>macros.all') or warn "can't write 'macros.all': $!\n";
+    print MACROS join $/, grep {!ref} @names;
+    close(MACROS);
 
 } else {
     use File::Copy;
