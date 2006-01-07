@@ -1,6 +1,4 @@
 Changes
-const-c.inc
-const-xs.inc
 Makefile.PL
 MANIFEST
 README
