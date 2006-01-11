@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use Test::More;
+plan skip_all => "Pod spelling: for developer interest only :)" unless -d 'releases';
 eval "use Test::Spelling";
 plan skip_all => "Test::Spelling required for testing POD spell" if $@;
 set_spell_cmd('aspell -l --lang=en');
