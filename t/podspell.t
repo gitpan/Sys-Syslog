@@ -56,3 +56,8 @@ pathname
 syslogd
 Syslogging
 logmask
+AIX
+SUSv
+Tru
+UX
+VOS
