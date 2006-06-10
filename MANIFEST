@@ -6,6 +6,7 @@ Syslog.pm
 Syslog.xs
 fallback/const-c.inc
 fallback/const-xs.inc
+ppport.h
 t/00-load.t
 t/constants.t
 t/distchk.t
