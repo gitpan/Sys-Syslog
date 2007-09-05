@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!perl -w
 use strict;
 use Test::More;
 plan skip_all => "Pod spelling: for developer interest only :)" unless -d 'releases';
@@ -14,7 +14,12 @@ SAPER
 Sébastien
 Aperghis
 Tramoni
+Aperghis-Tramoni
 Christiansen
+Kobes
+Hedden
+Reini
+Harnisch
 AnnoCPAN
 CPAN
 README
@@ -38,6 +43,7 @@ tcp
 UDP
 udp
 UUCP
+NTP
 FDDI
 Firewire
 HDLC
@@ -46,6 +52,8 @@ IrDA
 LocalTalk
 PPP
 unix
+FreeBSD
+NetBSD
 Solaris
 IRIX
 endianness
@@ -58,11 +66,13 @@ Syslogging
 logmask
 AIX
 SUSv
+SUSv3
 Tru
+Tru64
 UX
+HP-UX
 VOS
-Kobes
-Harnisch
 NetInfo
 VPN
 launchd
+logalert

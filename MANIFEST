@@ -7,6 +7,7 @@ Syslog.xs
 fallback/const-c.inc
 fallback/const-xs.inc
 ppport.h
+eg/syslog.pl
 t/00-load.t
 t/constants.t
 t/distchk.t
@@ -15,4 +16,10 @@ t/pod.t
 t/podcover.t
 t/podspell.t
 t/portfs.t
+win32/compile.pl
+win32/PerlLog.mc
+win32/PerlLog.RES
+win32/PerlLog_RES.uu
+win32/PerlLog_dll.uu
+win32/Win32.pm
 META.yml                                 Module meta-data (added by MakeMaker)
