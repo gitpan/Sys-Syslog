@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Sys-Syslog
-version:             0.20
+version:             0.21
 abstract:            Perl interface to the UNIX syslog(3) calls
 license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.36
