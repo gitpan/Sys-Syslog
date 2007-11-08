@@ -10,7 +10,7 @@ require 5.005;
 require Exporter;
 
 {   no strict 'vars';
-    $VERSION = '0.21';
+    $VERSION = '0.22';
     @ISA = qw(Exporter);
 
     %EXPORT_TAGS = (
@@ -94,6 +94,7 @@ my %options = (
     ndelay  => 0, 
     nofatal => 0, 
     nowait  => 0, 
+    perror  => 0, 
     pid     => 0, 
 );
 
@@ -104,14 +105,20 @@ if ($^O =~ /^(freebsd|linux)$/) {
     @connectMethods = grep { $_ ne 'udp' } @connectMethods;
 }
 
-# use EventLog on Win32
-my $is_Win32 = $^O =~ /Win32/i;
-eval "use Sys::Syslog::Win32";
+EVENTLOG: {
+    # use EventLog on Win32
+    my $is_Win32 = $^O =~ /Win32/i;
 
-if (not $@) {
-    unshift @connectMethods, 'eventlog';
-} elsif ($is_Win32) {
-    warn $@;
+    # some applications are trying to be too smart
+    # yes I'm speaking of YOU, SpamAssassin, grr..
+    local($SIG{__DIE__}, $SIG{__WARN__}, $@);
+
+    if (eval "use Sys::Syslog::Win32; 1") {
+        unshift @connectMethods, 'eventlog';
+    }
+    elsif ($is_Win32) {
+        warn $@;
+    }
 }
 
 my @defaultMethods = @connectMethods;
@@ -233,7 +240,8 @@ sub setlogsock {
         if (eval "use Win32::EventLog; 1") {
             @connectMethods = qw(eventlog);
         } else {
-            warnings::warnif "eventlog passed to setlogsock, but operating system isn't Win32-compatible";
+            warnings::warnif "eventlog passed to setlogsock, but no Win32 API available";
+            $@ = "";
             return undef;
         }
 
@@ -326,11 +334,11 @@ sub syslog {
     $message = @_ ? sprintf($mask, @_) : $mask;
 
     # See CPAN-RT#24431. Opened on Apple Radar as bug #4944407 on 2007.01.21
+    # Supposedly resolved on Leopard.
     chomp $message if $^O =~ /darwin/;
 
     if ($current_proto eq 'native') {
         $buf = $message;
-
     }
     elsif ($current_proto eq 'eventlog') {
         $buf = $message;
@@ -345,6 +353,15 @@ sub syslog {
         my $timestamp = strftime "%b %e %T", localtime;
         setlocale(LC_TIME, $oldlocale);
         $buf = "<$sum>$timestamp $whoami: $message\0";
+    }
+
+    # handle PERROR option
+    # "native" mechanism already handles it by itself
+    if ($options{perror} and $current_proto ne 'native') {
+        chomp $message;
+        my $whoami = $ident;
+        $whoami .= "[$$]" if $options{pid};
+        print STDERR "$whoami: $message\n";
     }
 
     # it's possible that we'll get an error from sending
@@ -454,7 +471,8 @@ sub xlate {
     $name = "Sys::Syslog::$name";
     # Can't have just eval { &$name } || -1 because some LOG_XXX may be zero.
     my $value = eval { no strict 'refs'; &$name };
-    defined $value ? $value : -1;
+    $@ = "";
+    return defined $value ? $value : -1;
 }
 
 
@@ -532,6 +550,7 @@ sub connect_tcp {
         # These constants don't exist in 5.005. They were added in 1999
         setsockopt(SYSLOG, IPPROTO_TCP(), TCP_NODELAY(), 1);
     }
+    $@ = "";
     if (!connect(SYSLOG, $addr)) {
 	push @$errs, "tcp connect: $!";
 	return 0;
@@ -638,7 +657,7 @@ sub connect_unix {
 	return 0;
     }
 
-    if (! -S $syslog_path) {
+    if (not (-S $syslog_path or -c _)) {
         push @$errs, "$syslog_path is not a socket";
 	return 0;
     }
@@ -752,7 +771,7 @@ Sys::Syslog - Perl interface to the UNIX syslog(3) calls
 
 =head1 VERSION
 
-Version 0.21
+Version 0.22
 
 =head1 SYNOPSIS
 
@@ -851,6 +870,11 @@ be established.
 C<nowait> - Don't wait for child processes that may have been created 
 while logging the message.  (The GNU C library does not create a child
 process, so this option has no effect on Linux.)
+
+=item *
+
+C<perror> - Write the message to standard error output as well to the
+system log.
 
 =item *
 
@@ -1003,8 +1027,8 @@ When this calling method is used, the array should contain a list of
 mechanisms which are attempted in order.
 
 The default is to try C<native>, C<tcp>, C<udp>, C<unix>, C<stream>, C<console>.
-Under Win32 systems, C<eventlog> will be added as the first mechanism to try 
-if C<Win32::EventLog> is available.
+Under systems with the Win32 API, C<eventlog> will be added as the first 
+mechanism to try if C<Win32::EventLog> is available.
 
 Giving an invalid value for C<$sock_type> will C<croak>.
 
@@ -1247,11 +1271,11 @@ C<LOG_DEBUG> - debug-level message
 
 B<(F)> You gave C<setlogsock()> an invalid value for C<$sock_type>. 
 
-=item C<eventlog passed to setlogsock, but operating system isn't Win32-compatible>
+=item C<eventlog passed to setlogsock, but no Win32 API available>
 
 B<(W)> You asked C<setlogsock()> to use the Win32 event logger but the 
 operating system running the program isn't Win32 or does not provides Win32
-facilities.
+compatible facilities.
 
 =item C<no connection to syslog available>
 
@@ -1387,7 +1411,7 @@ debug and polish C<Sys::Syslog> under Cygwin.
 
 Please report any bugs or feature requests to
 C<bug-sys-syslog (at) rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Sys-Syslog>.
+L<http://rt.cpan.org/Public/Dist/Display.html?Name=Sys-Syslog>.
 I will be notified, and then you'll automatically be notified of progress on
 your bug as I make changes.
 
@@ -1427,6 +1451,11 @@ L<http://cpan.uwinnipeg.ca/dist/Sys-Syslog>
 L<http://perldoc.perl.org/Sys/Syslog.html>
 
 =back
+
+
+=head1 COPYRIGHT
+
+Copyright (C) 1990-2007 by Larry Wall and others.
 
 
 =head1 LICENSE
