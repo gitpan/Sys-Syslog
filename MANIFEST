@@ -1,7 +1,6 @@
-Makefile.PL
-META.yml
-Changes
 MANIFEST
+Makefile.PL
+Changes
 README
 README.win32
 Syslog.pm
@@ -26,3 +25,4 @@ win32/PerlLog.RES
 win32/PerlLog_RES.uu
 win32/PerlLog_dll.uu
 win32/Win32.pm
+META.yml                                 Module meta-data (added by MakeMaker)

@@ -1,28 +1,21 @@
----
-name: Sys-Syslog
-version: 0.25
-author:
-  - 'Sebastien Aperghis-Tramoni <sebastien@aperghis.net>'
-abstract: Perl interface to the UNIX syslog(3) calls
-license: perl
-resources:
-  license: http://dev.perl.org/licenses/
-requires:
-  Carp: 0
-  Fcntl: 0
-  File::Basename: 0
-  File::Spec: 0
-  POSIX: 0
-  Socket: 0
-  XSLoader: 0
-  perl: 5.005
-build_requires:
-  Test::More: 0
-provides:
-  Sys::Syslog:
-    file: Syslog.pm
-    version: 0.25
-generated_by: Module::Build version 0.2808
+--- #YAML:1.0
+name:                Sys-Syslog
+version:             0.27
+abstract:            Perl interface to the UNIX syslog(3) calls
+license:             perl
+author:              
+    - Sebastien Aperghis-Tramoni <sebastien@aperghis.net>
+generated_by:        ExtUtils::MakeMaker version 6.44
+distribution_type:   module
+requires:     
+    Carp:                          0
+    Fcntl:                         0
+    File::Basename:                0
+    File::Spec:                    0
+    POSIX:                         0
+    Socket:                        0
+    Test::More:                    0
+    XSLoader:                      0
 meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.2.html
-  version: 1.2
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3
