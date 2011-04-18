@@ -12,7 +12,7 @@ require 5.005;
 
 
 {   no strict 'vars';
-    $VERSION = '0.28';
+    $VERSION = '0.29';
     @ISA     = qw< Exporter >;
 
     %EXPORT_TAGS = (
@@ -101,7 +101,9 @@ my $maskpri         = LOG_UPTO(&LOG_DEBUG);     # current log mask
 
 my %options = (
     ndelay  => 0, 
+    noeol   => 0,
     nofatal => 0, 
+    nonul   => 0,
     nowait  => 0, 
     perror  => 0, 
     pid     => 0, 
@@ -177,6 +179,7 @@ sub openlog {
 
 sub closelog {
     disconnect_log() if $connected;
+    $options{$_} = 0 for keys %options;
     $facility = $ident = "";
     $connected = 0;
     return 1
@@ -339,29 +342,42 @@ sub syslog {
     croak "syslog: expecting argument \$priority" unless defined $priority;
     croak "syslog: expecting argument \$format"   unless defined $mask;
 
-    croak "syslog: invalid level/facility: $priority" if $priority =~ /^-\d+$/;
-    @words = split(/\W+/, $priority, 2);    # Allow "level" or "level|facility".
-    undef $numpri;
-    undef $numfac;
+    if ($priority =~ /^\d+$/) {
+        $numpri = LOG_PRI($priority);
+        $numfac = LOG_FAC($priority);
+    }
+    elsif ($priority =~ /^\w+/) {
+        # Allow "level" or "level|facility".
+        @words = split /\W+/, $priority, 2;
 
-    for my $word (@words) {
-        next if length $word == 0;
+        undef $numpri;
+        undef $numfac;
 
-        $num = xlate($word);        # Translate word to number.
+        for my $word (@words) {
+            next if length $word == 0;
 
-        if ($num < 0) {
-            croak "syslog: invalid level/facility: $word"
+            # Translate word to number.
+            $num = xlate($word);
+
+            if ($num < 0) {
+                croak "syslog: invalid level/facility: $word"
+            }
+            elsif (my $pri = LOG_PRI($num)) {
+                croak "syslog: too many levels given: $word"
+                    if defined $numpri;
+                $numpri = $num;
+                return 0 unless LOG_MASK($numpri) & $maskpri;
+            }
+            else {
+                croak "syslog: too many facilities given: $word"
+                    if defined $numfac;
+                $facility = $word if $word =~ /^[A-Za-z]/;
+                $numfac = LOG_FAC($num);
+            }
         }
-        elsif ($num <= &LOG_PRIMASK) {
-            croak "syslog: too many levels given: $word" if defined $numpri;
-            $numpri = $num;
-            return 0 unless LOG_MASK($numpri) & $maskpri;
-        }
-        else {
-            croak "syslog: too many facilities given: $word" if defined $numfac;
-            $facility = $word;
-            $numfac = $num;
-        }
+    }
+    else {
+        croak "syslog: invalid level/facility: $priority"
     }
 
     croak "syslog: level must be given" unless defined $numpri;
@@ -383,10 +399,6 @@ sub syslog {
     $mask .= "\n" unless $mask =~ /\n$/;
     $message = @_ ? sprintf($mask, @_) : $mask;
 
-    # See CPAN-RT#24431. Opened on Apple Radar as bug #4944407 on 2007.01.21
-    # Supposedly resolved on Leopard (Mac OS X.5).
-    chomp $message if $^O =~ /darwin/;
-
     if ($current_proto eq 'native') {
         $buf = $message;
     }
@@ -402,13 +414,20 @@ sub syslog {
         setlocale(LC_TIME, 'C');
         my $timestamp = strftime "%b %e %H:%M:%S", localtime;
         setlocale(LC_TIME, $oldlocale);
-        $buf = "<$sum>$timestamp $whoami: $message\0";
+
+        # construct the stream that will be transmitted
+        $buf = "<$sum>$timestamp $whoami: $message";
+
+        # add (or not) a newline
+        $buf .= "\n" if !$options{noeol} and rindex($buf, "\n") == -1;
+
+        # add (or not) a NUL character
+        $buf .= "\0" if !$options{nonul};
     }
 
     # handle PERROR option
     # "native" mechanism already handles it by itself
     if ($options{perror} and $current_proto ne 'native') {
-        chomp $message;
         my $whoami = $ident;
         $whoami .= "[$$]" if $options{pid};
         print STDERR "$whoami: $message\n";
@@ -455,7 +474,7 @@ sub syslog {
 
 sub _syslog_send_console {
     my ($buf) = @_;
-    chop($buf); # delete the NUL from the end
+
     # The console print is a method which could block
     # so we do it in a child process and always return success
     # to the caller.
@@ -475,10 +494,11 @@ sub _syslog_send_console {
     } else {
         if (open(CONS, ">/dev/console")) {
 	    my $ret = print CONS $buf . "\r";  # XXX: should this be \x0A ?
-	    exit $ret if defined $pid;
+	    POSIX::_exit $ret if defined $pid;
 	    close CONS;
 	}
-	exit if defined $pid;
+
+	POSIX::_exit if defined $pid;
     }
 }
 
@@ -503,8 +523,8 @@ sub _syslog_send_socket {
 }
 
 sub _syslog_send_native {
-    my ($buf, $numpri) = @_;
-    syslog_xs($numpri, $buf);
+    my ($buf, $numpri, $numfac) = @_;
+    syslog_xs($numpri|$numfac, $buf);
     return 1;
 }
 
@@ -855,7 +875,7 @@ Sys::Syslog - Perl interface to the UNIX syslog(3) calls
 
 =head1 VERSION
 
-This is the documentation of version 0.28
+This is the documentation of version 0.29
 
 =head1 SYNOPSIS
 
@@ -944,9 +964,19 @@ opened when the first message is logged).
 
 =item *
 
+C<noeol> - When set to true, no end of line character (C<\n>) will be
+appended to the message. This can be useful for some buggy syslog daemons.
+
+=item *
+
 C<nofatal> - When set to true, C<openlog()> and C<syslog()> will only 
 emit warnings instead of dying if the connection to the syslog can't 
 be established. 
+
+=item *
+
+C<nonul> - When set to true, no C<NUL> character (C<\0>) will be
+appended to the message. This can be useful for some buggy syslog daemons.
 
 =item *
 

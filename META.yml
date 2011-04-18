@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Sys-Syslog
-version:            0.28
+version:            0.29
 abstract:           Perl interface to the UNIX syslog(3) calls
 author:
     - Sebastien Aperghis-Tramoni <sebastien@aperghis.net>
