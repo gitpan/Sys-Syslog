@@ -25,4 +25,5 @@ win32/PerlLog.RES
 win32/PerlLog_RES.uu
 win32/PerlLog_dll.uu
 win32/Win32.pm
-META.yml                                 Module meta-data (added by MakeMaker)
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
