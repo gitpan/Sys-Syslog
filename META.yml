@@ -26,4 +26,6 @@ requires:
   Socket: 0
   Test::More: 0
   XSLoader: 0
-version: 0.30
+resources:
+  repository: https://github.com/maddingue/Sys-Syslog.git
+version: 0.31
