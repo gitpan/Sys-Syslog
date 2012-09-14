@@ -28,4 +28,4 @@ requires:
   XSLoader: 0
 resources:
   repository: https://github.com/maddingue/Sys-Syslog.git
-version: 0.31
+version: 0.32
